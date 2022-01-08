@@ -11,13 +11,29 @@ type
 
 
 proc initField(label = ""): Field =
-  Field(label: label)
+  var defaultNode = buildHtml(input())
+  Field(label: label, node: defaultNode)
+
+proc fromVNode(f: Field, node: VNode): Field =
+  var cp = f
+  cp.node = node
+  return cp
 
 template attrs(f: Field, x: varargs[untyped]): Field =
   var cp = f
-  cp.node = buildHtml(input(x))
-  #for attr, val in attrs:
+  var attrNode = buildHtml(p(x))
+  for (attr, value) in attrNode.attrs:
+    cp.node.setAttr(attr, value)
   cp
+
+proc options(f: Field, options: openarray[(string, string)]): Field =
+  var html = buildHtml(select):
+    for (value, name) in options:
+      option(value = value):
+        text name
+  for (attr, value) in f.node.attrs:
+    html.setAttr(attr, value)
+  return f.fromVNode(html)
 
 type Form* = OrderedTable[string, Field]
 
@@ -73,4 +89,5 @@ when isMainModule:
   var myForm = initForm():
     email = initField(label = "Email Address").attrs(type="email", placeholder="something@gmail.com")
     name = initField(label="name").attrs(type="text", placeholder="John Doe")
+    location = initField(label="Location").options(options = {"USA": "United States", "GB": "Great Brit"})
   echo myForm.render()
