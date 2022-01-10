@@ -4,58 +4,64 @@ import karax/[karaxdsl, vdom]
 import dalo/validators
   
 type 
+  Widget = proc(f: Field, name, value: string, errors: seq[string]): VNode {.closure.}
   Field* = object 
     label*: string
     node*: VNode
+    attrs*: seq[(string, string)]
+    widget*: Widget
+    options*: seq[(string, string)] # only used for multi select type fields
     validators*: seq[Validator]
+proc applyAttrs(node: var VNode, attrs: seq[(string, string)]) =
+  for (attr, val) in attrs: node.setAttr(attr, val)
 
+proc defaultInput(f: Field, name, value = "", errors: seq[string] = @[]): VNode =
+  var node = buildHtml(input())
+  node.applyAttrs(f.attrs)
+  node.setAttr("name", name)
+  buildHtml(label):
+    text f.label
+    node
 
-proc initField(label = ""): Field =
-  var defaultNode = buildHtml(input())
-  Field(label: label, node: defaultNode)
+proc defaultSelect(f: Field, name, value = "", errors: seq[string] = @[]): VNode =
+  var node = buildHtml(select())
+  node.applyAttrs(f.attrs)
+  node.setAttr("name", name)
+  buildHtml(label):
+    text f.label
+    buildHtml node:
+      for (value, name) in f.options:
+        option(value = value): text name
 
-proc fromVNode(f: Field, node: VNode): Field =
-  var cp = f
-  cp.node = node
-  return cp
+proc initField(label = "", widget = defaultInput): Field =
+  Field(label: label, widget: widget)
 
-template attrs(f: Field, x: varargs[untyped]): Field =
+proc initField(label = "", widget = defaultSelect, options: openarray[(string, string)]): Field =
+  Field(label: label, widget: widget, options: toSeq(options))
+
+template setAttrs(f: Field, x: varargs[untyped]): Field =
   var cp = f
   var attrNode = buildHtml(p(x))
-  for (attr, value) in attrNode.attrs:
-    cp.node.setAttr(attr, value)
+  cp.attrs = toSeq(attrNode.attrs)
   cp
 
-proc options(f: Field, options: openarray[(string, string)]): Field =
-  var html = buildHtml(select):
-    for (value, name) in options:
-      option(value = value):
-        text name
-  for (attr, value) in f.node.attrs:
-    html.setAttr(attr, value)
-  return f.fromVNode(html)
 
-type Form* = OrderedTable[string, Field]
+type Form* = object
+  fields: OrderedTable[string, Field]
+  validators*: seq[Validator]
 
 template `.=`*(form: Form, fieldName: untyped, field: Field) =
-  form[astToStr(fieldName)] = field
+  form.fields[astToStr(fieldName)] = field
 
 template `.`*(form: Form, fieldName: untyped): Field =
-  form[astToStr(fieldName)]
+  form.fields[astToStr(fieldName)]
 
 proc render(f: Field, name = "", errors: seq[string] = @[]): VNode =
-  var node = f.node
-  node.setAttr("name", name)
-  when compiles(overrideRender(f)): # hook for user defined rendering
-    overrideRender(f)
-  else:
-    buildHtml(label):
-      text f.label
-      node
+  return f.widget(f, name = name, value = "", errors = errors)
 
 proc render*(form: Form, values = newStringTable()): VNode =
   buildHtml(tdiv):
-    for name, field in form:
+    for name, field in form.fields:
       var errors = field.validators.mapIt(it(label = field.label, value = values.getOrDefault(name)))
       field.render(name, errors)
 
@@ -81,13 +87,12 @@ proc render*(form: Form, values = newStringTable()): VNode =
 #       inc i
 template initForm(body: untyped): untyped =
     var form = Form()
-    with form:
-      body
+    with form: body
     form
 
 when isMainModule:
   var myForm = initForm():
-    email = initField(label = "Email Address").attrs(type="email", placeholder="something@gmail.com")
-    name = initField(label="name").attrs(type="text", placeholder="John Doe")
-    location = initField(label="Location").options(options = {"USA": "United States", "GB": "Great Brit"})
+    email = initField(label = "Email Address").setAttrs(type="email", placeholder="something@gmail.com")
+    name = initField(label="name").setAttrs(type="text", placeholder="John Doe")
+    location = initField(label="Location", options = {"USA": "United States", "GB": "Great Brit"})
   echo myForm.render()
