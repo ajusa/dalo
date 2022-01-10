@@ -1,43 +1,60 @@
 {.experimental: "dotOperators".}
-import tables, std/[with, sequtils, strtabs]
+import tables, std/[with, sequtils, strtabs, uri]
 import karax/[karaxdsl, vdom]
 import dalo/validators
   
 type 
   Widget = proc(f: Field, name, value: string, errors: seq[string]): VNode {.closure.}
   Field* = object 
-    label*: string
-    node*: VNode
-    attrs*: seq[(string, string)]
-    widget*: Widget
+    label*: string # Human readable label
+    default*: string # Default value
+    attrs*: seq[(string, string)] # List of attributes, usually for HTML
+    widget*: Widget # a Widget that defines a renderer
     options*: seq[(string, string)] # only used for multi select type fields
+    validators*: seq[Validator] # Validations to run for the field
+  Form* = object
+    fields: OrderedTable[string, Field]
     validators*: seq[Validator]
+  Values* = OrderedTable[string, string] # Holds values from submitting form
+const SEP = "\28" # AWK uses this, non printing char
+proc initValues(qs: string): Values =
+  for (name, value) in qs.decodeQuery:
+    if name in result:
+      result[name] &= SEP & value
+    else:
+      result[name] = value
+echo initValues("asdf=a&bdsf=b&asdf=b")
+
 proc applyAttrs(node: var VNode, attrs: seq[(string, string)]) =
   for (attr, val) in attrs: node.setAttr(attr, val)
 
-proc defaultInput(f: Field, name, value = "", errors: seq[string] = @[]): VNode =
+proc defaultInput(f: Field, name, value: string, errors: seq[string] = @[]): VNode =
   var node = buildHtml(input())
   node.applyAttrs(f.attrs)
   node.setAttr("name", name)
+  node.setAttr("value", value)
   buildHtml(label):
     text f.label
     node
 
-proc defaultSelect(f: Field, name, value = "", errors: seq[string] = @[]): VNode =
+proc defaultSelect(f: Field, name, value: string, errors: seq[string] = @[]): VNode =
   var node = buildHtml(select())
   node.applyAttrs(f.attrs)
   node.setAttr("name", name)
   buildHtml(label):
     text f.label
     buildHtml node:
-      for (value, name) in f.options:
-        option(value = value): text name
+      for (val, name) in f.options:
+        if value == val:
+          option(value = val, selected = ""): text name
+        else:
+          option(value = val): text name
 
-proc initField(label = "", widget = defaultInput): Field =
-  Field(label: label, widget: widget)
+proc initField(label = "", default = "", widget = defaultInput): Field =
+  Field(label: label, widget: widget, default: default)
 
-proc initField(label = "", widget = defaultSelect, options: openarray[(string, string)]): Field =
-  Field(label: label, widget: widget, options: toSeq(options))
+proc initField(label = "", default = "", widget = defaultSelect, options: openarray[(string, string)]): Field =
+  Field(label: label, widget: widget, options: toSeq(options), default: default)
 
 template setAttrs(f: Field, x: varargs[untyped]): Field =
   var cp = f
@@ -45,54 +62,33 @@ template setAttrs(f: Field, x: varargs[untyped]): Field =
   cp.attrs = toSeq(attrNode.attrs)
   cp
 
-
-type Form* = object
-  fields: OrderedTable[string, Field]
-  validators*: seq[Validator]
-
 template `.=`*(form: Form, fieldName: untyped, field: Field) =
   form.fields[astToStr(fieldName)] = field
 
 template `.`*(form: Form, fieldName: untyped): Field =
   form.fields[astToStr(fieldName)]
 
-proc render(f: Field, name = "", errors: seq[string] = @[]): VNode =
-  return f.widget(f, name = name, value = "", errors = errors)
+proc render(f: Field, name = "", value: Values, errors: seq[string] = @[]): VNode =
+  var renderedValue = if name in value: value[name] else: f.default
+  return f.widget(f, name = name, value = renderedValue, errors = errors)
 
-proc render*(form: Form, values = newStringTable()): VNode =
+proc validate*(form: Form, values: Values) =
+  discard
+
+proc render*(form: Form, values = initValues("")): VNode =
   buildHtml(tdiv):
     for name, field in form.fields:
       var errors = field.validators.mapIt(it(label = field.label, value = values.getOrDefault(name)))
-      field.render(name, errors)
+      field.render(name = name, errors = errors, value = values)
 
-# proc generate*(form: Form, values = initTable[string, string](), readonly = false): VNode =
-#   var inputs = newSeq[VNode]()
-#   for name, input in form:
-#     var node = buildHtml(input(type=input.type, name=name, placeholder=input.placeholder, value=values.getOrDefault(name)))
-#     if readonly:
-#       node.setAttr("readonly")
-#     var error = input.validators[0].validate(values.getOrDefault(name))
-#     if values.len > 0 and error.len > 0:
-#       node.setAttr("aria-invalid", "true")
-#     inputs.add(node)
-#   var i = 0
-#   buildHtml(tdiv):
-#     for name, input in form:
-#       label:
-#         text input.label
-#         inputs[i]
-#         var error = input.validators[0].validate(values.getOrDefault(name))
-#         if error.len > 0 and values.len > 0:
-#           small(class="error"): text error
-#       inc i
 template initForm(body: untyped): untyped =
     var form = Form()
     with form: body
     form
 
-when isMainModule:
-  var myForm = initForm():
-    email = initField(label = "Email Address").setAttrs(type="email", placeholder="something@gmail.com")
-    name = initField(label="name").setAttrs(type="text", placeholder="John Doe")
-    location = initField(label="Location", options = {"USA": "United States", "GB": "Great Brit"})
-  echo myForm.render()
+# when isMainModule:
+#   var myForm = initForm():
+#     email = initField(label = "Email Address").setAttrs(type="email", placeholder="something@gmail.com")
+#     name = initField(label="name").setAttrs(type="text", placeholder="John Doe")
+#     location = initField(label="Location", default = "GB", options = {"USA": "United States", "GB": "Great Brit"})
+#   echo myForm.render()
