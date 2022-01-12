@@ -45,15 +45,21 @@ template `.`*(form: Form, fieldName: untyped): Field =
   form.fields[astToStr(fieldName)]
 
 proc render(f: Field, name = "", value: Values, errors: seq[string] = @[]): VNode =
-  var renderedValue = if name in value: value[name] else: f.default
+  var renderedValue = if name in value: value[name] else: f.default # is this right?
   return f.widget(f, name = name, value = renderedValue, errors = errors)
 
-proc validate*(form: Form, values: Values): Errors =
+proc validate*(form: Form, values: Values, useDefaults = false): Errors =
   for name, field in form.fields:
-    result.fieldErrors[name] = field.validators
-      .mapIt(it(field.label, values.getOrDefault(name)))
-      .filterIt(it.len > 0)
-  result.formErrors = form.validators.mapIt(values.it).filterIt(it.len > 0)
+    if useDefaults:
+      result.fieldErrors[name] = field.validators
+        .mapIt(it(field.label, values.getOrDefault(name, field.default)))
+        .filterIt(it.len > 0)
+    else:
+      result.fieldErrors[name] = field.validators
+        .mapIt(it(field.label, values.getOrDefault(name)))
+        .filterIt(it.len > 0)
+  if not useDefaults:
+    result.formErrors = form.validators.mapIt(values.it).filterIt(it.len > 0)
 
 template makeForm(body: untyped): untyped =
   var form = Form()
