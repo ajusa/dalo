@@ -7,9 +7,10 @@ export validators
 export values
   
 type 
-  Widget* = proc(f: Field, name, value: string, errors: seq[string]): VNode {.closure.}
+  Widget* = proc(f: Field, value: string, errors: seq[string]): VNode {.closure.}
   Field* = object 
     label*: string # Human readable label
+    name*: string # Internal field name
     default*: string # Default value
     attrs*: seq[(string, string)] # List of attributes, usually for HTML
     widget*: Widget # a Widget that defines a renderer
@@ -40,33 +41,28 @@ template setAttrs(f: Field, x: varargs[untyped]): Field =
 
 template `.=`*(form: Form, fieldName: untyped, field: Field) =
   form.fields[astToStr(fieldName)] = field
+  form.fields[astToStr(fieldName)].name = astToStr(fieldName)
 
 template `.`*(form: Form, fieldName: untyped): Field =
   form.fields[astToStr(fieldName)]
 
-proc render(f: Field, name = "", value: Values, errors: seq[string] = @[]): VNode =
-  var renderedValue = if name in value: value[name] else: f.default # is this right?
-  return f.widget(f, name = name, value = renderedValue, errors = errors)
+proc render(f: Field, value: Values, errors: seq[string] = @[]): VNode =
+  var renderedValue = if f.name in value: value[f.name] else: f.default # is this right?
+  return f.widget(f, value = renderedValue, errors = errors)
 
-proc validate*(form: Form, values: Values, useDefaults = false): Errors =
+proc validate*(form: Form, values: Values): Errors =
   for name, field in form.fields:
-    if useDefaults:
-      result.fieldErrors[name] = field.validators
-        .mapIt(it(field.label, values.getOrDefault(name, field.default)))
-        .filterIt(it.len > 0)
-    else:
       result.fieldErrors[name] = field.validators
         .mapIt(it(field.label, values.getOrDefault(name)))
         .filterIt(it.len > 0)
-  if not useDefaults:
-    result.formErrors = form.validators.mapIt(values.it).filterIt(it.len > 0)
+  result.formErrors = form.validators.mapIt(values.it).filterIt(it.len > 0)
 
 template makeForm(body: untyped): untyped =
   var form = Form()
   with form: body
   form
 
-proc initForm(validators: seq[FormValidator]): Form =
+proc initForm(validators: seq[FormValidator] = @[]): Form =
   Form(validators: validators)
 
 when isMainModule:
@@ -79,5 +75,6 @@ when isMainModule:
   var a = buildHtml(tdiv):
     for name, field in myForm.fields:
       var errors = field.validators.mapIt(it(label = field.label, value = vals.getOrDefault(name)))
-      field.render(name = name, errors = errors, value = vals)
+      field.render(errors = errors, value = vals)
   echo a
+  # echo myForm.renderField(email, initValues(""), Errors())
