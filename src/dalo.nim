@@ -1,10 +1,12 @@
 {.experimental: "dotOperators".}
-import tables, std/[with, sequtils, strtabs, uri]
+import std/[with, sequtils, strtabs, uri, strutils, tables]
 import karax/[karaxdsl, vdom]
+import slicerator
 import dalo/validators
   
 type 
-  Widget = proc(f: Field, name, value: string, errors: seq[string]): VNode {.closure.}
+  Widget* = proc(f: Field, name, value: string, errors: seq[string]): VNode {.closure.}
+  Values* = OrderedTable[string, string] # Holds values from submitting form
   Field* = object 
     label*: string # Human readable label
     default*: string # Default value
@@ -12,43 +14,24 @@ type
     widget*: Widget # a Widget that defines a renderer
     options*: seq[(string, string)] # only used for multi select type fields
     validators*: seq[Validator] # Validations to run for the field
+  FormValidator* = proc(r: Values): string {.closure.}
   Form* = object
     fields: OrderedTable[string, Field]
-    validators*: seq[Validator]
-  Values* = OrderedTable[string, string] # Holds values from submitting form
+    validators*: seq[FormValidator]
+  Errors* = object
+    fieldErrors: OrderedTable[string, seq[string]] # Errors for each field
+    formErrors: seq[string] # Overall form errors
+
 const SEP = "\28" # AWK uses this, non printing char
 proc initValues(qs: string): Values =
   for (name, value) in qs.decodeQuery:
+    var val = value.replace(SEP) # Ensure SEP doesn't appear in the string
     if name in result:
-      result[name] &= SEP & value
+      result[name] &= SEP & val
     else:
-      result[name] = value
-echo initValues("asdf=a&bdsf=b&asdf=b")
+      result[name] = val
 
-proc applyAttrs(node: var VNode, attrs: seq[(string, string)]) =
-  for (attr, val) in attrs: node.setAttr(attr, val)
-
-proc defaultInput(f: Field, name, value: string, errors: seq[string] = @[]): VNode =
-  var node = buildHtml(input())
-  node.applyAttrs(f.attrs)
-  node.setAttr("name", name)
-  node.setAttr("value", value)
-  buildHtml(label):
-    text f.label
-    node
-
-proc defaultSelect(f: Field, name, value: string, errors: seq[string] = @[]): VNode =
-  var node = buildHtml(select())
-  node.applyAttrs(f.attrs)
-  node.setAttr("name", name)
-  buildHtml(label):
-    text f.label
-    buildHtml node:
-      for (val, name) in f.options:
-        if value == val:
-          option(value = val, selected = ""): text name
-        else:
-          option(value = val): text name
+include dalo/widgets
 
 proc initField(label = "", default = "", widget = defaultInput): Field =
   Field(label: label, widget: widget, default: default)
@@ -72,23 +55,30 @@ proc render(f: Field, name = "", value: Values, errors: seq[string] = @[]): VNod
   var renderedValue = if name in value: value[name] else: f.default
   return f.widget(f, name = name, value = renderedValue, errors = errors)
 
-proc validate*(form: Form, values: Values) =
-  discard
+proc validate*(form: Form, values: Values): Errors =
+  for name, field in form.fields:
+    result.fieldErrors[name] = field.validators
+      .mapIt(it(field.label, values.getOrDefault(name)))
+      .filterIt(it.len > 0)
+  result.formErrors = form.validators.mapIt(values.it).filterIt(it.len > 0)
 
-proc render*(form: Form, values = initValues("")): VNode =
-  buildHtml(tdiv):
-    for name, field in form.fields:
+template makeForm(body: untyped): untyped =
+  var form = Form()
+  with form: body
+  form
+
+proc initForm(validators: seq[FormValidator]): Form =
+  Form(validators: validators)
+
+when isMainModule:
+  var myForm = makeForm:
+    email = initField(label = "Email Address").setAttrs(type="email", placeholder="something@gmail.com")
+    name = initField(label="name", default = "Hey").setAttrs(type="text", placeholder="John Doe")
+    location = initField(label="Location", default = "USA", options = {"USA": "United States", "GB": "Great Brit"})
+    aboutYou = initField(label="About", default = "Hey there, my name is John Smith", widget = defaultTextarea)
+  var values = initValues("")
+  var a = buildHtml(tdiv):
+    for name, field in myForm.fields:
       var errors = field.validators.mapIt(it(label = field.label, value = values.getOrDefault(name)))
       field.render(name = name, errors = errors, value = values)
-
-template initForm(body: untyped): untyped =
-    var form = Form()
-    with form: body
-    form
-
-# when isMainModule:
-#   var myForm = initForm():
-#     email = initField(label = "Email Address").setAttrs(type="email", placeholder="something@gmail.com")
-#     name = initField(label="name").setAttrs(type="text", placeholder="John Doe")
-#     location = initField(label="Location", default = "GB", options = {"USA": "United States", "GB": "Great Brit"})
-#   echo myForm.render()
+  echo a

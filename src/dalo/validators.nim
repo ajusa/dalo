@@ -1,11 +1,11 @@
 import strutils, strformat, regex, lenientops, uri
 
 type 
-  Validator* = proc(value, label: string): string {.closure.}
+  Validator* = proc(label, value: string): string {.closure.}
   Message* = static string
 
 template makeValidator(isValid: untyped): untyped =
-  return proc(value {.inject.}, label {.inject.}: string): string =
+  return proc(label {.inject.}, value {.inject.}: string): string =
     if isValid:
       return &message
 
