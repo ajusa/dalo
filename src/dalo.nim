@@ -1,12 +1,13 @@
 {.experimental: "dotOperators".}
-import std/[with, sequtils, strtabs, uri, strutils, tables]
+import std/[with, sequtils, strtabs, strutils, tables]
 import karax/[karaxdsl, vdom]
 import slicerator
-import dalo/validators
+import dalo/[validators, values]
+export validators
+export values
   
 type 
   Widget* = proc(f: Field, name, value: string, errors: seq[string]): VNode {.closure.}
-  Values* = OrderedTable[string, string] # Holds values from submitting form
   Field* = object 
     label*: string # Human readable label
     default*: string # Default value
@@ -22,14 +23,6 @@ type
     fieldErrors: OrderedTable[string, seq[string]] # Errors for each field
     formErrors: seq[string] # Overall form errors
 
-const SEP = "\28" # AWK uses this, non printing char
-proc initValues(qs: string): Values =
-  for (name, value) in qs.decodeQuery:
-    var val = value.replace(SEP) # Ensure SEP doesn't appear in the string
-    if name in result:
-      result[name] &= SEP & val
-    else:
-      result[name] = val
 
 include dalo/widgets
 
@@ -73,12 +66,12 @@ proc initForm(validators: seq[FormValidator]): Form =
 when isMainModule:
   var myForm = makeForm:
     email = initField(label = "Email Address").setAttrs(type="email", placeholder="something@gmail.com")
-    name = initField(label="name", default = "Hey").setAttrs(type="text", placeholder="John Doe")
+    name = initField(label="Name", default = "Hey").setAttrs(type="text", placeholder="John Doe")
     location = initField(label="Location", default = "USA", options = {"USA": "United States", "GB": "Great Brit"})
     aboutYou = initField(label="About", default = "Hey there, my name is John Smith", widget = defaultTextarea)
-  var values = initValues("")
+  var vals = initValues("")
   var a = buildHtml(tdiv):
     for name, field in myForm.fields:
-      var errors = field.validators.mapIt(it(label = field.label, value = values.getOrDefault(name)))
-      field.render(name = name, errors = errors, value = values)
+      var errors = field.validators.mapIt(it(label = field.label, value = vals.getOrDefault(name)))
+      field.render(name = name, errors = errors, value = vals)
   echo a
