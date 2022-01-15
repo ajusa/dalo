@@ -22,8 +22,8 @@ type
     fields*: OrderedTable[string, Field]
     validators*: seq[FormValidator]
   Errors* = object
-    fieldErrors: OrderedTable[string, string] # Errors for each field
-    formErrors: seq[string] # Overall form errors
+    fieldErrors*: OrderedTable[string, string] # Errors for each field
+    formErrors*: seq[string] # Overall form errors
 
 
 include dalo/widgets
@@ -34,10 +34,16 @@ proc initField*(label = "", default = "", widget = defaultInput): Field =
 proc initField*(label = "", default = "", widget = defaultSelect, options: openarray[(string, string)]): Field =
   Field(label: label, widget: widget, options: toSeq(options), default: default)
 
+proc fillInValidators*(f: var Field) =
+  var kind = f.attrs.filterIt(it[0] == "type")
+  if kind.len > 0:
+    f.validators = kind[0][1].defaultValidators(f.attrs)
+
 template setAttrs*(f: Field, x: varargs[untyped]): Field =
   var cp = f
   var attrNode = buildHtml(p(x))
   cp.attrs = toSeq(attrNode.attrs)
+  cp.fillInValidators()
   cp
 
 template `.=`*(form: Form, fieldName: untyped, field: Field) =
@@ -51,11 +57,15 @@ proc render*(f: Field, value: Values, error = ""): VNode =
   var renderedValue = if f.name in value: value[f.name] else: f.default # is this right?
   return f.widget(f, value = renderedValue, error = error)
 
+proc isRequired*(f: Field): bool =
+  f.attrs.anyIt(it[0] == "required")
+
 proc validate*(form: Form, values: Values): Errors =
   for name, field in form.fields:
-      result.fieldErrors[name] = ""
+      var submittedVal = values.getOrDefault(name)
+      if not field.isRequired and submittedVal == "": continue
       for validator in field.validators:
-        var error = validator(field.label, values.getOrDefault(name))
+        var error = validator(field.label, submittedVal)
         if error.len > 0:
           result.fieldErrors[name] = error
           break

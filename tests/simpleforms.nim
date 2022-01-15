@@ -1,4 +1,4 @@
-import dalo, susta, karax/[karaxdsl], tables
+import dalo, susta, karax/[karaxdsl], tables, uri
 
 section "large demo":
   var myForm = makeForm:
@@ -9,3 +9,19 @@ section "large demo":
 
   for name, field in myForm.fields:
     echo field.render(value = Values())
+
+section "validation demo":
+  var myForm = makeForm:
+    email = initField(label = "Email Address").setAttrs(type="email", minlength = "8", placeholder="something@gmail.com")
+    age = initField(label="Age", default = "3").setAttrs(type = "number", required = "", min = "13")
+  var values = encodeQuery({"email": "notanemail"}).initValues
+  echo myForm.validate(values)
+  values = encodeQuery({"email": "avalidemail@email.com"}).initValues
+  echo myForm.validate(values)
+  values = encodeQuery({"age": "not a number", "email": "s@mal.c"}).initValues
+  echo myForm.validate(values)
+  values = encodeQuery({"age": "3", }).initValues
+  echo myForm.validate(values)
+  values = encodeQuery({"age": "23", }).initValues
+  echo myForm.validate(values)
+

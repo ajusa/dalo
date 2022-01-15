@@ -1,4 +1,4 @@
-import strutils, strformat, regex, lenientops, uri
+import strutils, strformat, regex, lenientops, uri, parseutils
 
 type 
   Validator* = proc(label, value: string): string {.closure.}
@@ -38,29 +38,46 @@ proc requiredValidator(message: Message = "{label} is required"): Validator =
   makeValidator(value.len == 0)
 
 const EMAIL_PATTERN = re"\S+@\S+\.\S+"
-proc emailValidator(message: Message = "{value} is not a valid email"): Validator =
+proc emailValidator(message: Message = "'{value}' is not a valid email"): Validator =
   makeValidator(not value.contains(EMAIL_PATTERN))
 
+proc numberValidator(message: Message = "'{value}' is not a number"): Validator =
+  makeValidator:
+    var f: float
+    value.parseFloat(f) == 0
 # echo maxNumericValidator(4)(label = "Age", value = "4.2")
 
-proc builtInValidators(kind, attr, value: string): Validator =
+proc typeValidator*(kind: string): Validator =
+  case kind
+  of "number": return numberValidator()
+  of "email": return emailValidator()
+
+proc attrValidator*(kind, attr, value: string): Validator =
   case attr
   of "minlength":
     return minLengthValidator(value.parseInt)
   of "maxlength":
     return maxLengthValidator(value.parseInt)
-  of "required":
-    return requiredValidator()
   of "pattern":
     return regexValidator(value.re)
   of "min":
     case kind
     of "number", "range":
-      value.parseSomeNumber(min):
-        return minNumericValidator(min)
+      value.parseSomeNumber(min): return minNumericValidator(min)
   of "max":
     case kind
     of "number", "range":
-      value.parseSomeNumber(max):
-        return maxNumericValidator(max)
+      value.parseSomeNumber(max): return maxNumericValidator(max)
+
+proc defaultValidators*(kind: string, attrs: seq[(string, string)]): seq[Validator] =
+  var validator = typeValidator(kind)
+  if validator != nil:
+    result.add(validator)
+  for (attr, value) in attrs:
+    var validator = attrValidator(kind, attr, value)
+    if attr == "required": # required must be checked first
+      result.insert(validator)
+    elif validator != nil:
+      result.add(validator)
+
 
