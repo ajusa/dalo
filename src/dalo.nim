@@ -13,10 +13,11 @@ type
     label*: string # Human readable label
     name*: string # Internal field name
     default*: string # Default value
-    attrs*: seq[(string, string)] # List of attributes, usually for HTML
+    attributes*: seq[(string, string)] # List of attributes, usually for HTML
     widget*: Widget # a Widget that defines a renderer
     options*: seq[(string, string)] # only used for multi select type fields
     validators*: seq[Validator] # Validations to run for the field
+    useDefaultValidator: bool # Whether to use the default validators
   FormValidator* = proc(r: Values): string {.closure.}
   Form* = object
     fields*: OrderedTable[string, Field]
@@ -28,22 +29,23 @@ type
 
 include dalo/widgets
 
-proc initField*(label = "", default = "", widget = defaultInput): Field =
-  Field(label: label, widget: widget, default: default)
+proc initField*(label = "", default = "", widget = defaultInput, useDefaultValidator = true): Field =
+  Field(label: label, widget: widget, default: default, useDefaultValidator: useDefaultValidator)
 
-proc initField*(label = "", default = "", widget = defaultSelect, options: openarray[(string, string)]): Field =
-  Field(label: label, widget: widget, options: toSeq(options), default: default)
+proc initField*(label = "", default = "", widget = defaultSelect, useDefaultValidator = true, options: openarray[(string, string)]): Field =
+  Field(label: label, widget: widget, options: toSeq(options), default: default, useDefaultValidator: useDefaultValidator)
 
 proc fillInValidators*(f: var Field) =
-  var kind = f.attrs.filterIt(it[0] == "type")
+  var kind = f.attributes.filterIt(it[0] == "type")
   if kind.len > 0:
-    f.validators = kind[0][1].defaultValidators(f.attrs)
+    f.validators = kind[0][1].defaultValidators(f.attributes)
 
-template setAttrs*(f: Field, x: varargs[untyped]): Field =
+template attrs*(f: Field, x: varargs[untyped]): Field =
   var cp = f
-  var attrNode = buildHtml(p(x))
-  cp.attrs = toSeq(attrNode.attrs)
-  cp.fillInValidators()
+  var attrNode = buildHtml(p(x)) # todo more efficient
+  cp.attributes = toSeq(attrNode.attrs)
+  if cp.useDefaultValidator: # this feels awful
+    cp.fillInValidators()
   cp
 
 template `.=`*(form: Form, fieldName: untyped, field: Field) =
@@ -54,11 +56,11 @@ template `.`*(form: Form, fieldName: untyped): Field =
   form.fields[astToStr(fieldName)]
 
 proc render*(f: Field, value: Values, error = ""): VNode =
-  var renderedValue = if f.name in value: value[f.name] else: f.default # is this right?
+  var renderedValue = if f.name in value: value[f.name] else: f.default
   return f.widget(f, value = renderedValue, error = error)
 
 proc isRequired*(f: Field): bool =
-  f.attrs.anyIt(it[0] == "required")
+  f.attributes.anyIt(it[0] == "required")
 
 proc validate*(form: Form, values: Values): Errors =
   for name, field in form.fields:

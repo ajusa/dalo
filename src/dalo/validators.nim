@@ -54,6 +54,8 @@ proc typeValidator*(kind: string): Validator =
 
 proc attrValidator*(kind, attr, value: string): Validator =
   case attr
+  of "required":
+    return requiredValidator()
   of "minlength":
     return minLengthValidator(value.parseInt)
   of "maxlength":

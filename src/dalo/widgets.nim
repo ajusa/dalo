@@ -3,21 +3,21 @@ proc applyAttrs*(node: var VNode, attrs: seq[(string, string)]) =
 
 proc defaultInput*(f: Field, value: string, error = ""): VNode =
   var node = buildHtml(input(name = f.name, value = value))
-  node.applyAttrs(f.attrs)
+  node.applyAttrs(f.attributes)
   buildHtml(label):
     text f.label
     node
 
 proc defaultTextarea*(f: Field, value: string, error = ""): VNode =
   var node = buildHtml(textarea(name = f.name)): text value
-  node.applyAttrs(f.attrs)
+  node.applyAttrs(f.attributes)
   buildHtml(label):
     text f.label
     node
 
 proc defaultSelect*(f: Field, value: string, error = ""): VNode =
   var node = buildHtml(select(name = f.name))
-  node.applyAttrs(f.attrs)
+  node.applyAttrs(f.attributes)
   var selected = asClosure value.split(SEP) # multiselect support
   buildHtml(label):
     text f.label
