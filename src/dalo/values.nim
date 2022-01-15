@@ -1,4 +1,5 @@
 import std/[uri, tables, strutils]
+export pairs
 
 type Values* = OrderedTable[string, string] # Holds values from submitting form
 const SEP* = "\28" # AWK uses this, non printing char
@@ -19,7 +20,7 @@ proc fill(s: string, v: var string) =
 proc fill(s: string, v: var float) =
   v = parseFloat(s)
 
-proc fromValues[T](values: Values, obj: var T) =
+proc fill*[T](values: Values, obj: var T) =
   for key, value in values:
     for k, v in obj.fieldPairs:
       if k == key:
@@ -27,13 +28,5 @@ proc fromValues[T](values: Values, obj: var T) =
         value.fill(v2)
         v = v2
 
-when isMainModule:
-  import print
-  type Person = object
-    name: string
-    age: int
-  var test = initValues("name=asdf&age=5")
-  var p: Person
-  test.fromValues(p)
-  echo p
-
+proc fromValues*[T](values: Values, x: typedesc[T]): T =
+  values.fill(result)

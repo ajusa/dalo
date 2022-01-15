@@ -1,21 +1,21 @@
 proc applyAttrs*(node: var VNode, attrs: seq[(string, string)]) =
   for (attr, val) in attrs: node.setAttr(attr, val)
 
-proc defaultInput*(f: Field, value: string, errors: seq[string] = @[]): VNode =
+proc defaultInput*(f: Field, value: string, error = ""): VNode =
   var node = buildHtml(input(name = f.name, value = value))
   node.applyAttrs(f.attrs)
   buildHtml(label):
     text f.label
     node
 
-proc defaultTextarea*(f: Field, value: string, errors: seq[string] = @[]): VNode =
+proc defaultTextarea*(f: Field, value: string, error = ""): VNode =
   var node = buildHtml(textarea(name = f.name)): text value
   node.applyAttrs(f.attrs)
   buildHtml(label):
     text f.label
     node
 
-proc defaultSelect*(f: Field, value: string, errors: seq[string] = @[]): VNode =
+proc defaultSelect*(f: Field, value: string, error = ""): VNode =
   var node = buildHtml(select(name = f.name))
   node.applyAttrs(f.attrs)
   var selected = asClosure value.split(SEP) # multiselect support

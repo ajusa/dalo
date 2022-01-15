@@ -1,0 +1,8 @@
+===================================large demo===================================
+<label>Email Address<input name="email" value="" type="email" placeholder="something@gmail.com" /></label>
+<label>Name<input name="name" value="Hey" type="text" placeholder="John Doe" /></label>
+<label>Location<select name="location">
+    <option value="USA" selected="">United States</option>
+    <option value="GB">Great Brit</option>
+  </select></label>
+<label>About<textarea name="aboutYou">Hey there, my name is John Smith</textarea></label>
