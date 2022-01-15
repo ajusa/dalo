@@ -1,7 +1,7 @@
 {.experimental: "dotOperators".}
 import std/[with, sequtils, strtabs, strutils, tables]
 import karax/[karaxdsl, vdom]
-import slicerator
+import constructor/constructor
 import dalo/[validators, values]
 export validators
 export values
@@ -15,9 +15,8 @@ type
     default*: string # Default value
     attributes*: seq[(string, string)] # List of attributes, usually for HTML
     widget*: Widget # a Widget that defines a renderer
-    options*: seq[(string, string)] # only used for multi select type fields
+    opts*: seq[(string, string)] # only used for multi select type fields
     validators*: seq[Validator] # Validations to run for the field
-    useDefaultValidator: bool # Whether to use the default validators
   FormValidator* = proc(r: Values): string {.closure.}
   Form* = object
     fields*: OrderedTable[string, Field]
@@ -26,14 +25,11 @@ type
     fieldErrors*: OrderedTable[string, string] # Errors for each field
     formErrors*: seq[string] # Overall form errors
 
-
 include dalo/widgets
 
-proc initField*(label = "", default = "", widget = defaultInput, useDefaultValidator = true): Field =
-  Field(label: label, widget: widget, default: default, useDefaultValidator: useDefaultValidator)
-
-proc initField*(label = "", default = "", widget = defaultSelect, useDefaultValidator = true, options: openarray[(string, string)]): Field =
-  Field(label: label, widget: widget, options: toSeq(options), default: default, useDefaultValidator: useDefaultValidator)
+proc initField*(label = "", default = "", widget = defaultInput): Field {.constr.}
+proc initField*(label = "", default = "", widget = defaultSelect, options: openarray[(string, string)]): Field {.constr.} =
+  result.opts = toSeq(options)
 
 proc fillInValidators*(f: var Field) =
   var kind = f.attributes.filterIt(it[0] == "type")
@@ -44,8 +40,7 @@ template attrs*(f: Field, x: varargs[untyped]): Field =
   var cp = f
   var attrNode = buildHtml(p(x)) # todo more efficient
   cp.attributes = toSeq(attrNode.attrs)
-  if cp.useDefaultValidator: # this feels awful
-    cp.fillInValidators()
+  cp.fillInValidators()
   cp
 
 template `.=`*(form: Form, fieldName: untyped, field: Field) =
@@ -78,5 +73,4 @@ template makeForm*(body: untyped): untyped =
   with form: body
   form
 
-proc initForm*(validators: seq[FormValidator] = @[]): Form =
-  Form(validators: validators)
+proc initForm*(validators: seq[FormValidator] = @[]): Form {.constr.}
