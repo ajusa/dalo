@@ -3,32 +3,38 @@ import std/sets
 proc applyAttrs*(node: var VNode, attrs: seq[(string, string)]) =
   for (attr, val) in attrs: node.setAttr(attr, val)
 
+proc buildInput*(f: Field, value: string): VNode =
+  result = buildHtml(input(name = f.name, value = value))
+  result.applyAttrs(f.attributes)
+
 proc defaultInput*(f: Field, value: string, error = ""): VNode =
-  var node = buildHtml(input(name = f.name, value = value))
-  node.applyAttrs(f.attributes)
   buildHtml(label):
     text f.label
-    node
+    f.buildInput(value)
+
+proc buildTextarea*(f: Field, value: string): VNode =
+  result = buildHtml(textarea(name = f.name)): text value
+  result.applyAttrs(f.attributes)
 
 proc defaultTextarea*(f: Field, value: string, error = ""): VNode =
-  var node = buildHtml(textarea(name = f.name)): text value
-  node.applyAttrs(f.attributes)
   buildHtml(label):
     text f.label
-    node
+    f.buildTextarea(value)
+
+proc buildSelect*(f: Field, value: string): VNode =
+  var selected = toHashSet value.split(SEP) # multiselect support
+  result = buildHtml(select(name = f.name)):
+    for (val, name) in f.opts:
+      if val in selected:
+        option(value = val, selected = ""): text name
+      else:
+        option(value = val): text name
+  result.applyAttrs(f.attributes)
 
 proc defaultSelect*(f: Field, value: string, error = ""): VNode =
-  var node = buildHtml(select(name = f.name))
-  node.applyAttrs(f.attributes)
-  var selected = toHashSet value.split(SEP) # multiselect support
   buildHtml(label):
     text f.label
-    buildHtml node:
-      for (val, name) in f.opts:
-        if val in selected:
-          option(value = val, selected = ""): text name
-        else:
-          option(value = val): text name
+    f.buildSelect(value)
 
 # slicerator version, most folks won't have multiple same values though I assume
 # proc defaultSelect*(f: Field, value: string, error = ""): VNode =

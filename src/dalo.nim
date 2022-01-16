@@ -51,9 +51,9 @@ template `.=`*(form: Form, fieldName: untyped, field: Field) =
 template `.`*(form: Form, fieldName: untyped): Field =
   form.fields[astToStr(fieldName)]
 
-proc render*(f: Field, value: Values, error = ""): VNode =
+proc render*(f: Field, value: Values, errors = Errors()): VNode =
   var renderedValue = if f.name in value: value[f.name] else: f.default
-  return f.widget(f, value = renderedValue, error = error)
+  return f.widget(f, value = renderedValue, error = errors.fieldErrors.getOrDefault(f.name))
 
 proc isRequired*(f: Field): bool =
   f.attributes.anyIt(it[0] == "required")
