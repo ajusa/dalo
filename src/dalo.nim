@@ -28,8 +28,7 @@ type
 include dalo/widgets
 
 proc initField*(label = "", default = "", widget = defaultInput): Field {.constr.}
-proc initField*(label = "", default = "", widget = defaultSelect, options: openarray[(string, string)]): Field =
-  result = initField(label, default, widget)
+proc initField*(label = "", default = "", widget = defaultSelect, options: openarray[(string, string)]): Field {.constr.} =
   result.opts = toSeq(options)
   result.validators = @[selectValidator(result.opts)]
 

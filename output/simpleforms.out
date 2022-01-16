@@ -6,3 +6,10 @@
     <option value="GB">Great Brit</option>
   </select></label>
 <label>About<textarea name="aboutYou">Hey there, my name is John Smith</textarea></label>
+================================validation demo=================================
+(fieldErrors: {"email": "\'notanemail\' is not a valid email", "age": "Age is required"}, formErrors: @[])
+(fieldErrors: {"age": "Age is required"}, formErrors: @[])
+(fieldErrors: {"email": "Email Address must be at least 8 characters", "age": "\'not a number\' is not a number"}, formErrors: @[])
+(fieldErrors: {"age": "Age must be larger than 13"}, formErrors: @[])
+(fieldErrors: {:}, formErrors: @[])
+(fieldErrors: {"age": "Age is required", "location": "\'IN\' is not a valid option"}, formErrors: @[])
