@@ -1,4 +1,6 @@
-import strutils, strformat, regex, lenientops, uri, parseutils
+import std/[strutils, strformat, lenientops, parseutils, sets, sequtils]
+import regex
+import dalo/values
 
 type 
   Validator* = proc(label, value: string): string {.closure.}
@@ -14,7 +16,6 @@ proc minLengthValidator(length: int, message: Message = "{label} must be at leas
 
 proc maxLengthValidator(length: int, message: Message = "{label} cannot be longer than {length} characters"): Validator =
   makeValidator(value.len > length)
-
 
 proc regexValidator(pattern: Regex, message: Message = "{label} is not valid"): Validator =
   makeValidator(not value.contains(pattern))
@@ -45,7 +46,10 @@ proc numberValidator(message: Message = "'{value}' is not a number"): Validator 
   makeValidator:
     var f: float
     value.parseFloat(f) == 0
-# echo maxNumericValidator(4)(label = "Age", value = "4.2")
+
+proc selectValidator*(options: seq[(string, string)], message: Message = "'{value}' is not a valid option"): Validator =
+  var optionSet = toHashSet(options.mapIt(it[0]))
+  makeValidator(value.split(SEP).anyIt(it notin optionSet))
 
 proc typeValidator*(kind: string): Validator =
   case kind

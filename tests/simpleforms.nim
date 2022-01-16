@@ -14,6 +14,7 @@ section "validation demo":
   var myForm = makeForm:
     email = initField(label = "Email Address").attrs(type="email", minlength = "8", placeholder="something@gmail.com")
     age = initField(label="Age", default = "3").attrs(type = "number", required = "", min = "13")
+    location = initField(label="Location", default = "USA", options = {"USA": "United States", "GB": "Great Brit"})
   var values = encodeQuery({"email": "notanemail"}).initValues
   echo myForm.validate(values)
   values = encodeQuery({"email": "avalidemail@email.com"}).initValues
@@ -22,6 +23,7 @@ section "validation demo":
   echo myForm.validate(values)
   values = encodeQuery({"age": "3", }).initValues
   echo myForm.validate(values)
-  values = encodeQuery({"age": "23", }).initValues
+  values = encodeQuery({"age": "23", "location": "USA"}).initValues
   echo myForm.validate(values)
-
+  values = encodeQuery({"location": "IN", }).initValues
+  echo myForm.validate(values)

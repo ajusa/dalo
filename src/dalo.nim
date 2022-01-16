@@ -28,13 +28,15 @@ type
 include dalo/widgets
 
 proc initField*(label = "", default = "", widget = defaultInput): Field {.constr.}
-proc initField*(label = "", default = "", widget = defaultSelect, options: openarray[(string, string)]): Field {.constr.} =
+proc initField*(label = "", default = "", widget = defaultSelect, options: openarray[(string, string)]): Field =
+  result = initField(label, default, widget)
   result.opts = toSeq(options)
+  result.validators = @[selectValidator(result.opts)]
 
 proc fillInValidators*(f: var Field) =
   var kind = f.attributes.filterIt(it[0] == "type")
   if kind.len > 0:
-    f.validators = kind[0][1].defaultValidators(f.attributes)
+    f.validators &= kind[0][1].defaultValidators(f.attributes)
 
 template attrs*(f: Field, x: varargs[untyped]): Field =
   var cp = f
