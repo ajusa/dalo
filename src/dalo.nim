@@ -27,8 +27,8 @@ type
 proc empty*(e: Errors): bool = e.fieldErrors.len == 0 and e.formErrors.len == 0
 include dalo/widgets
 
-proc initField*(label = "", default = "", widget: Widget = defaultInput): Field {.constr.}
-proc initField*(label = "", default = "", widget: Widget = defaultSelect, options: openarray[(string, string)]): Field {.constr.} =
+proc initField*(label = "", default = "", name = "", widget: Widget = defaultInput): Field {.constr.}
+proc initField*(label = "", default = "", name = "", widget: Widget = defaultSelect, options: openarray[(string, string)]): Field {.constr.} =
   result.opts = toSeq(options)
   result.validators = @[selectValidator(result.opts)]
 
@@ -41,6 +41,10 @@ template attrs*(f: Field, x: varargs[untyped]): Field =
   var cp = f
   var attrNode = buildHtml(p(x)) # todo more efficient
   cp.attributes = toSeq(attrNode.attrs)
+  if attrNode.id.len != 0:
+    cp.attributes.add ("id", attrNode.id)
+  if attrNode.class.len != 0:
+    cp.attributes.add ("class", attrNode.class)
   cp.fillInValidators()
   cp
 

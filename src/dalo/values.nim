@@ -31,6 +31,7 @@ proc fill*[T](s: string, v: var Option[T]) =
 
 proc fill*[T](values: Values, obj: var T) =
   for key, value in values:
+    if value == "": continue # skip if not filled in
     when T is ref object:
       for k, v in obj[].fieldPairs:
         if k == key:

@@ -27,3 +27,7 @@ section "validation demo":
   echo myForm.validate(values)
   values = encodeQuery({"location": "IN", }).initValues
   echo myForm.validate(values)
+section "attributes":
+  var email = initField(name = "email", label = "Email Address").attrs(type="email", id="myId", class = "hey now")
+  echo email.render()
+
