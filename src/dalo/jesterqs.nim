@@ -17,9 +17,3 @@ proc query*(req: request.Request): string =
   else:
     let u = req.req.url
     return u.query
-
-when isMainModule:
-  import jester
-  routes:
-    get "/":
-      resp request.query()
