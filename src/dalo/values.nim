@@ -11,10 +11,12 @@ proc initValues*(qs: string): Values =
     else:
       result[name] = val
 
-
-
-proc fill(s: string, v: var int) =
+proc fill(s: string, v: var SomeSignedInt) =
   v = parseInt(s)
+
+proc fill[T: enum](s: string, v: var T) =
+  # todo: use try catch around parseEnum to grab string representations
+  v = T(parseInt(s))
 
 proc fill(s: string, v: var string) =
   v = s
