@@ -1,7 +1,12 @@
 ===================================To Person====================================
-(name: "asdf", age: 5, middle: some("5"))
+(name: "asdf", age: 5, middle: some("5"), class: Baby)
 ==================================To PersonRef==================================
-test.fromValues(PersonRef)=[36mPerson[0m(name: [32m"asdf"[0m, age: [34m5[0m, middle: [36mOption[system.string][0m(val: [32m"5"[0m, has: [34mtrue[0m))
+test.fromValues(PersonRef)=[36mPerson[0m(name: [32m"asdf"[0m, age: [34m5[0m, middle: [36mOption[system.string][0m(val: [32m"5"[0m, has: [34mtrue[0m), class: [32m"Baby"[0m)
 ==================================From Person===================================
-{"name": "string", "age": "int", "middle": ""}
-{"name": "string", "age": "int", "middle": "middle name"}
+{"name": "ajusa", "age": "34", "middle": "", "class": "Baby"}
+{"name": "ajusa", "age": "34", "middle": "middle name", "class": "Baby"}
+=================================From PersonRef=================================
+{"name": "ajusa", "age": "34", "middle": "", "class": "Baby"}
+{"name": "ajusa", "age": "34", "middle": "middle name", "class": "Baby"}
+====================================To Enum=====================================
+test.fromValues(Person)=[36mPerson[0m(name: [32m""[0m, age: [34m5[0m, middle: [36mOption[system.string][0m(val: [32m"5"[0m, has: [34mtrue[0m), class: [32m"Youth"[0m)

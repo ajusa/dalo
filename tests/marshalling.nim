@@ -22,6 +22,12 @@ section "From Person":
   p = Person(name: "ajusa", age: 34, middle: some "middle name")
   echo p.toValues()
 
+section "From PersonRef":
+  var p = PersonRef(name: "ajusa", age: 34)
+  echo p.toValues()
+  p = PersonRef(name: "ajusa", age: 34, middle: some "middle name")
+  echo p.toValues()
+
 section "To Enum":
   var test = initValues("class=2&age=5&middle=5")
   print test.fromValues(Person)

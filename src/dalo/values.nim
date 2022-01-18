@@ -29,7 +29,7 @@ proc fill*[T](s: string, v: var Option[T]) =
   s.fill(e)
   v = some(e)
 
-proc fill*[T](values: Values, obj: var T) =
+proc fill*[T](values: Values | Table[string, string], obj: var T) =
   for key, value in values:
     if value == "": continue # skip if not filled in
     when T is ref object:
@@ -46,18 +46,22 @@ proc fill*[T](values: Values, obj: var T) =
           v = v2
 
 proc toValue[T](v: T): string =
-  $T
+  $v
 
 proc toValue[T](v: Option[T]): string =
   if isSome v:
     return $v.get()
   else: return ""
 
-proc toValues*[T](obj: T): Values =
+proc toValues*[T: object|tuple](obj: T): Values =
   for key, value in obj.fieldPairs:
     result[key] = value.toValue
 
-proc fromValues*[T](values: Values, x: typedesc[T]): T =
+proc toValues*[T: ref object](obj: T): Values =
+  for key, value in obj[].fieldPairs:
+    result[key] = value.toValue
+
+proc fromValues*[T](values: Values | Table[string, string], x: typedesc[T]): T =
   when x is ref object:
     new(result)
   values.fill(result)
