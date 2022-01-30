@@ -1,8 +1,8 @@
 # Package
 
-version       = "0.1.0"
+version       = "0.1.1"
 author        = "ajusa"
-description   = "A new awesome nimble package"
+description   = "A form library for Nim"
 license       = "MIT"
 srcDir        = "src"
 
