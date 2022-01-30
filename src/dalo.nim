@@ -23,8 +23,8 @@ type
     validators*: seq[FormValidator]
   Errors* = object
     fieldErrors*: OrderedTable[string, string] # Errors for each field
-    formErrors*: seq[string] # Overall form errors
-proc empty*(e: Errors): bool = e.fieldErrors.len == 0 and e.formErrors.len == 0
+    formError*: string # Overall form error
+proc empty*(e: Errors): bool = e.fieldErrors.len == 0 and e.formError.len == 0
 include dalo/widgets
 
 proc initField*(label = "", default = "", name = "", widget: Widget = defaultInput): Field {.constr.}
@@ -62,7 +62,7 @@ proc render*(f: Field, value = Values(), errors = Errors()): VNode =
 proc isRequired*(f: Field): bool =
   f.attributes.anyIt(it[0] == "required")
 
-proc validate*(form: Form, values: Values): Errors =
+proc validate*(form: Form, values: Table[string, string]): Errors =
   for name, field in form.fields:
     var submittedVal = values.getOrDefault(name)
     if not field.isRequired and submittedVal == "": continue
@@ -71,7 +71,11 @@ proc validate*(form: Form, values: Values): Errors =
       if error.len > 0:
         result.fieldErrors[name] = error
         break
-  result.formErrors = form.validators.mapIt(values.it).filterIt(it.len > 0)
+  for validator in form.validators:
+    var error = validator(values)
+    if error.len > 0:
+      result.formError = error
+      break
 
 template makeForm*(body: untyped): untyped =
   var form = Form()

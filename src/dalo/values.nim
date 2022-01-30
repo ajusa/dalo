@@ -1,7 +1,7 @@
 import std/[uri, tables, strutils, options]
 export pairs
 
-type Values* = OrderedTable[string, string] # Holds values from submitting form
+type Values* = Table[string, string] # Holds values from submitting form
 const SEP* = "\28" # AWK uses this, non printing char
 proc initValues*(qs: string): Values =
   for (name, value) in qs.decodeQuery:
@@ -29,7 +29,7 @@ proc fill*[T](s: string, v: var Option[T]) =
   s.fill(e)
   v = some(e)
 
-proc fill*[T](values: Values | Table[string, string], obj: var T) =
+proc fill*[T](values: Table[string, string], obj: var T) =
   for key, value in values:
     if value == "": continue # skip if not filled in
     when T is ref object:

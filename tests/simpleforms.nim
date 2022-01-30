@@ -30,4 +30,3 @@ section "validation demo":
 section "attributes":
   var email = initField(name = "email", label = "Email Address").attrs(type="email", id="myId", class = "hey now")
   echo email.render()
-

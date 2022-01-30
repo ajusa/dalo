@@ -3,10 +3,10 @@
 ==================================To PersonRef==================================
 test.fromValues(PersonRef)=[36mPerson[0m(name: [32m"asdf"[0m, age: [34m5[0m, middle: [36mOption[system.string][0m(val: [32m"5"[0m, has: [34mtrue[0m), class: [32m"Baby"[0m)
 ==================================From Person===================================
-{"name": "ajusa", "age": "34", "middle": "", "class": "Baby"}
-{"name": "ajusa", "age": "34", "middle": "middle name", "class": "Baby"}
+{"age": "34", "class": "Baby", "middle": "", "name": "ajusa"}
+{"age": "34", "class": "Baby", "middle": "middle name", "name": "ajusa"}
 =================================From PersonRef=================================
-{"name": "ajusa", "age": "34", "middle": "", "class": "Baby"}
-{"name": "ajusa", "age": "34", "middle": "middle name", "class": "Baby"}
+{"age": "34", "class": "Baby", "middle": "", "name": "ajusa"}
+{"age": "34", "class": "Baby", "middle": "middle name", "name": "ajusa"}
 ====================================To Enum=====================================
 test.fromValues(Person)=[36mPerson[0m(name: [32m""[0m, age: [34m5[0m, middle: [36mOption[system.string][0m(val: [32m"5"[0m, has: [34mtrue[0m), class: [32m"Youth"[0m)
